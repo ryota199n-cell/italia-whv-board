@@ -1,13 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { jobs, cities, types } from "../data/jobs";
+import { useState, useEffect } from "react";
+import { supabase } from "../app/lib/supabase";
+import { cities, types } from "../data/jobs";
 import JobCard from "./JobCard";
 
+type Job = {
+  id: number;
+  title: string;
+  company: string;
+  city: string;
+  type: "アルバイト" | "フルタイム" | "パート" | "副業";
+  italian: string;
+  posted: string;
+  tags: string;
+  desc: string;
+};
+
 export default function JobList() {
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [cityFilter, setCityFilter] = useState("すべて");
   const [typeFilter, setTypeFilter] = useState("すべて");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (!error && data) setJobs(data);
+      setLoading(false);
+    };
+    fetchJobs();
+  }, []);
 
   const filtered = jobs.filter((j) => {
     const cityOk = cityFilter === "すべて" || j.city === cityFilter;
@@ -16,7 +43,7 @@ export default function JobList() {
       search === "" ||
       j.title.includes(search) ||
       j.company.includes(search) ||
-      j.tags.some((t) => t.includes(search));
+      j.tags.includes(search);
     return cityOk && typeOk && searchOk;
   });
 
@@ -63,14 +90,14 @@ export default function JobList() {
       </div>
 
       <div style={{ color: "#888", fontSize: 13, marginBottom: 14 }}>
-        {filtered.length}件の求人が見つかりました
+        {loading ? "読み込み中..." : `${filtered.length}件の求人が見つかりました`}
       </div>
 
       <div>
         {filtered.map((job) => (
-          <JobCard key={job.id} job={job} />
+          <JobCard key={job.id} job={{...job, tags: (job.tags ?? "").split(",")}} />
         ))}
-        {filtered.length === 0 && (
+        {!loading && filtered.length === 0 && (
           <div style={{ textAlign: "center", color: "#aaa", padding: "60px 0", fontSize: 15 }}>
             😕 条件に合う求人が見つかりませんでした
           </div>

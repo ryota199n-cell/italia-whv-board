@@ -1,9 +1,46 @@
 "use client";
 
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function PostPage() {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    company: "",
+    city: "",
+    posted: "",
+    desc: "",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async () => {
+    if (!form.title || !form.company || !form.city) {
+      alert("タイトル・会社名・勤務地は必須です");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.from("jobs").insert([{
+      title: form.title,
+      company: form.company,
+      city: form.city,
+      posted: form.posted,
+      desc: form.desc,
+      type: "アルバイト",
+      italian: "不問",
+      tags: "",
+    }] as any);
+    setLoading(false);
+    if (error) {
+      alert("エラーが発生しました: " + error.message);
+    } else {
+      setSubmitted(true);
+    }
+  };
 
   return (
     <div style={{ minHeight: "100vh", background: "#f7f5f0" }}>
@@ -77,18 +114,21 @@ export default function PostPage() {
             <h2 style={{ margin: "0 0 6px", fontSize: 20, color: "#1a472a" }}>求人を投稿する</h2>
             <p style={{ color: "#888", fontSize: 13, margin: "0 0 24px" }}>無料で掲載できます。審査後に公開されます。</p>
 
-            {[
-              ["求人タイトル", "例：和食レストランのホールスタッフ募集"],
-              ["会社・店舗名", "例：Ristorante Sakura"],
-              ["勤務地（都市）", "例：ミラノ"],
-              ["給与・待遇", "例：時給€10〜、週3日〜相談可"],
-            ].map(([label, placeholder]) => (
-              <div key={label} style={{ marginBottom: 16 }}>
+            {([
+              ["求人タイトル", "例：和食レストランのホールスタッフ募集", "title"],
+              ["会社・店舗名", "例：Ristorante Sakura", "company"],
+              ["勤務地（都市）", "例：ミラノ", "city"],
+              ["給与・待遇", "例：時給€10〜、週3日〜相談可", "posted"],
+            ] as [string, string, string][]).map(([label, placeholder, name]) => (
+              <div key={name} style={{ marginBottom: 16 }}>
                 <label style={{
                   display: "block", fontWeight: 600,
                   fontSize: 13, color: "#333", marginBottom: 6,
                 }}>{label}</label>
                 <input
+                  name={name}
+                  value={form[name as keyof typeof form]}
+                  onChange={handleChange}
                   placeholder={placeholder}
                   style={{
                     width: "100%", border: "1.5px solid #e0e0e0",
@@ -106,6 +146,9 @@ export default function PostPage() {
                 fontSize: 13, color: "#333", marginBottom: 6,
               }}>仕事内容・詳細</label>
               <textarea
+                name="desc"
+                value={form.desc}
+                onChange={handleChange}
                 placeholder="仕事の内容、求める人材、連絡先など..."
                 rows={5}
                 style={{
@@ -118,15 +161,17 @@ export default function PostPage() {
             </div>
 
             <button
-              onClick={() => setSubmitted(true)}
+              onClick={handleSubmit}
+              disabled={loading}
               style={{
-                background: "#2d6a4f", color: "#fff",
+                background: loading ? "#aaa" : "#2d6a4f", color: "#fff",
                 border: "none", borderRadius: 8,
                 padding: "12px 28px", fontWeight: 700,
-                fontSize: 14, cursor: "pointer", width: "100%",
+                fontSize: 14, cursor: loading ? "not-allowed" : "pointer",
+                width: "100%",
               }}
             >
-              📤 投稿する（無料）
+              {loading ? "送信中..." : "📤 投稿する（無料）"}
             </button>
           </div>
         )}
