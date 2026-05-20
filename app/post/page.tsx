@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { insertJob } from "../actions/jobs";
+import { supabase } from "../lib/supabase";
 
 export default function PostPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -24,10 +24,19 @@ export default function PostPage() {
       return;
     }
     setLoading(true);
-    const result = await insertJob(form);
+    const { error } = await supabase.from("jobs").insert([{
+      title: form.title,
+      company: form.company,
+      city: form.city,
+      posted: form.posted,
+      desc: form.desc,
+      type: "アルバイト",
+      italian: "不問",
+      tags: "",
+    }] as any);
     setLoading(false);
-    if (!result.success) {
-      alert("エラーが発生しました: " + result.message);
+    if (error) {
+      alert("エラーが発生しました: " + error.message);
     } else {
       setSubmitted(true);
     }
